@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<link rel="stylesheet" type="text/css" href="styles/Main.css"></style>
+
+		<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false"></script>
+		<script type="text/javascript" src="scripts/libraries/d3.v3.min.js"></script>
+		<script type="text/javascript" src="scripts/libraries/topojson.v1.min.js"></script>
+		<script type="text/javascript" src="scripts/libraries/colorbrewer.js"></script>
+		<script type="text/javascript" src="scripts/Main.js"></script>
+		<script type="text/javascript" src="scripts/SolarCalculator.js"></script>
+		
+	</head>
+	<body onload="var compatibleInd = Main.CheckCompatibility(); if (compatibleInd) {Main.Init();}">
+		<div id="headerCntnr">
+			<div id="title">Rethinking Time</div>
+			<div id="rightHdrCntnr">
+				<div id="rightHdrLeftColCntnr">
+					<div id="currTimeTxt">Current Global Time (UTC)</div>
+					<div id="utcDate"></div>
+				</div>
+				<div id="utcTime"></div>
+			</div>
+		</div>
+		<img id="loadingImg" src="images/loading.gif">
+		<div id="mainBodyCntnr">
+			<svg id="timeZonesMap"></svg>
+			<div id="relativeTimeCntnr">
+				<input id="locationInput" type="text" placeholder='Add a location (e.g., "Berlin, Germany")' />
+				<svg id="relativeTimeClock"></svg>
+			</div>
+		</div>
+		<!-- For screenshot capability. 
+		<input id="saveImg" type="button" value="save" disabled="disabled"/>
+		-->
+	</body>
+</html>

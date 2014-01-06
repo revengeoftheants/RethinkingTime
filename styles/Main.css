@@ -1,0 +1,175 @@
+body {
+	position: absolute;
+	top: 0;
+	left: 0;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+    min-width: 900px;
+    max-width: 1400px;
+    width: 100%;
+    overflow: auto;
+    background-color: #FFFFFF;
+	color: #626262;
+    font-family: arial, verdana, georgia;
+    font-size: 100%;
+    stroke-width: .5px;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+.compatibilityMsg {
+	font-size: 13px;
+	font-weight: normal;
+	text-align: center;
+	background: #FFFFFF;
+	color: #000000;
+	padding: 1.5em;
+	width: 400px;
+	margin: 5em auto 0;
+}
+
+#headerCntnr {
+	position: fixed;
+	left: 0;
+	top: 0;
+	width: 96%;
+	padding: 10px 2%;
+	background-color: inherit;
+}
+
+#title {
+	display: inline-block;
+	vertical-align: top;
+	width: 50%;
+	height: 100%;
+	font-size: 3em;
+	white-space: nowrap;
+}
+
+#rightHdrCntnr {
+	display: inline-block;
+	position: relative;  /* Positioning this container relative allows us to position its children absolutely within it. */
+	vertical-align: top;
+	white-space: nowrap;
+	width: 49%;
+	top: 0;
+	height: 100%;
+	text-align: right;
+}
+
+#rightHdrLeftColCntnr, #utcTime {
+	position: absolute; /* Positioning these children absolutely allows us to take up the entire height of the parent, including the margins of the children. */
+    height: auto;
+    top: 0;
+    bottom: 0;
+}
+
+#rightHdrLeftColCntnr {
+	right: 0;
+	margin-right: 200px;
+	margin-top: 13px;
+}
+
+#currTimeTxt {
+	font-size: 1.2em;
+}
+
+#utcDate {
+	font-size: .9em;
+}
+
+#utcTime {
+	right: 0;
+	width: 200px;
+	font-size: 2.5em;
+	line-height: 0.9;
+	margin-top: 16px;
+}
+
+#loadingImg {
+	display: block;
+	position: absolute;
+	/* These two lines will center the 64px-wide image. */
+	left: 50%;
+	margin-left: -32px;
+	/* This line will center it in the svg element. Since we don't resize the height of the svg element based on window height, a pixel distance is what we want. */
+	top: 335px;
+}
+
+#mainBodyCntnr {
+	margin-top: 77px;  /* Do not overlap the header. */
+}
+
+.graticule {
+	fill: none;
+	stroke: #777777;
+	stroke-opacity: 0.5;
+}
+
+.antarcticaBorder {
+	fill: none;
+	stroke: #777777;
+}
+
+.timezoneBorder {
+	fill: none;
+	stroke: #FFFFFF;
+	stroke-width: 1.25px;
+}
+
+#tooltip {
+	visibility: hidden;
+	position: absolute;
+	z-index: 10;
+	text-align: center;
+	white-space: nowrap;
+	background: #FFFFFF; 
+	padding: .1em;
+	opacity: 0.75;
+}
+
+#relativeTimeCntnr {
+	margin-top: 100px;
+}
+
+input {   
+    padding: 9px;
+    border: solid 1px #E5E5E5;
+    outline: 0;
+    width: 250px;
+    box-shadow: rgba(0,0,0, 0.1) 0px 0px 8px;
+    -moz-box-shadow: rgba(0,0,0, 0.1) 0px 0px 8px;
+    -webkit-box-shadow: rgba(0,0,0, 0.1) 0px 0px 8px;
+    color: #626262;
+}
+
+#locationInput {
+	margin-left: 50px;
+}
+
+.hourMark {
+	fill: none;
+	stroke-width: 2px;
+	stroke: #777777;
+	stroke-opacity: 0.5;
+}
+
+.hourTxt {
+	fill: #626262;
+	font-size: 1.5em;
+}
+
+.arcSun {
+	fill: #F8FFB0;
+}
+
+.arcNight {
+	fill: #303030;
+}
+
+.arcLabel {
+	font-family: verdana, arial;
+	font-size: 0.7em;
+	color: #777777;
+}
