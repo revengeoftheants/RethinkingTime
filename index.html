@@ -2,6 +2,8 @@
 <html lang="en">
 
 	<head>
+		<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+		<meta content="utf-8" http-equiv="encoding">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 		<link rel="stylesheet" type="text/css" href="styles/Main.css"></style>
@@ -16,7 +18,7 @@
 	</head>
 	<body onload="var compatibleInd = Main.CheckCompatibility(); if (compatibleInd) {Main.Init();}">
 		<div id="headerCntnr">
-			<div id="title">Rethinking Time</div>
+			<div id="title">One Clock</div>
 			<div id="rightHdrCntnr">
 				<div id="rightHdrLeftColCntnr">
 					<div id="currTimeTxt">Current Global Time (UTC)</div>
@@ -27,9 +29,41 @@
 		</div>
 		<img id="loadingImg" src="images/loading.gif">
 		<div id="mainBodyCntnr">
+			<p id="firstPara">
+				Our existing system for communicating the daily passage of time is comprised of a surprisingly large and complex set of ever-changing rules based on political boundaries and local preferences. While this system served us well in the past, its reliance on divisions and localities conflicts with both the universality of time and the interconnectedness of our present world.
+			</p>
+			<p>
+				In order to ensure truly unambiguous communication in an interconnected world, we have relied on Coordinated Universal Time (UTC) for many decades but we have thus far confined the use of this effective tool primarily to our machines. Rather than truly integrating it in our everyday lives, we have in fact co-opted it, somewhat absurdly making it the foundation for our current, highly localized system. Rather than accepting and acclimating ourselves to the universal nature of time, we have ultimately chosen to preserve the antiquated metaphor <i>Here Is Now</i>.
+			</p>
 			<svg id="timeZonesMap"></svg>
 			<div id="relativeTimeCntnr">
-				<input id="locationInput" type="text" placeholder='Add a location (e.g., "Berlin, Germany")' />
+				<p>
+					In order to not only respect the universality of time but also fully enjoy the benefits of an interconnected world, we must eventually learn to recognize the falsity of <i>Here Is Now</i> and instead accept that <i>Now Is Everywhere</i>. We must accept that it doesn't make much logical sense that a Londoner and a New Yorker can exist ostensibly in two different days simultaneously, especially when such a conceptual system makes the otherwise seemingly insurmountable barriers between past, present, and future so easily overcome with a telephone or IP packet, making these everyday tools true time machines.
+				</p>
+				<p>
+					To transition into a smarter future we simply have to reprogram ourselves a bit. We have to recognize that we have been calibrating our watches to the sun, not the other way around. The sun will continue to wake us up, and its reflection in the moon will still lull us to sleep. In most places lunch will no longer be eaten at 12:00pm, but everywhere it still will be eaten at (solar) noon. A world with one clock is not so much a different world as it is a simpler world, one in which time is dictated by itself rather than politicians and dusty museum sundials.
+				</p>
+				<h3 id="toolHeader">
+					<strike>What time is it in Berlin right now?</strike> &nbsp&nbspWhat's it like in Berlin right now?
+				</h3>
+				<div id="inputsCntnr">
+					<div id="locationInputCntnr">
+						<input id="locationInput" onkeyup="Main.HandleLocationInputOnKeyup(event)" type="text" />
+						<button onclick="Main.HandleClearButtonClick()">Clear</button>
+					</div>
+					<div id="dateInputsCntnr">
+						<button id="todayBtn" onclick="Main.HandleTodayButtonClick()">Today</button>
+						<div id="yearCntnr" class="dateInputCntnr">Year
+							<input id="year" class="dateInput" onkeyup="Main.HandleDateOnKeyup(event)" type="text" />
+						</div>
+						<div id="monthCntnr" class="dateInputCntnr">Month
+							<input id="month" class="dateInput" onkeyup="Main.HandleDateOnKeyup(event)" type="text" />
+						</div>
+						<div id="dateCntnr" class="dateInputCntnr">Day
+							<input id="date" class="dateInput" onkeyup="Main.HandleDateOnKeyup(event)" type="text" />
+						</div>
+					</div>
+				</div>
 				<svg id="relativeTimeClock"></svg>
 			</div>
 		</div>

@@ -43,23 +43,52 @@
 	 * Public methods
 	 **********************/
 
-	SolarCalculator.Calculate = function(inpLatDegNbr, inpLongDegNbr, inpYearNbr, inpMonthNbr, inpDayNbr, inpUTCOffsetNbr, inpDSTInd) {
+	/*
+	 * Calculates the main solar times of sunrise, noon, and sunset for a given location and time.
+	 *
+	 * @returns -- An object containing formatted times (e.g., HH:MM). Note, if an extreme latitude does not experience a sunrise/sunset
+	 *		during some days in the winter, we will return an empty string for these times.
+	 */
+	SolarCalculator.Calculate = function(inpLatDegNbr, inpLongDegNbr, inpYearNbr, inpMonthNbr, inpDateNbr, inpUTCOffsetNbr, inpDSTInd) {
 		var rtnObj = {};
 		var currDate = new Date();
 
 		inpYearNbr = (inpYearNbr != "undefined" && typeof(inpYearNbr) == "number") ? inpYearNbr : currDate.getUTCFullYear();
 		inpMonthNbr = (inpMonthNbr != "undefined" && typeof(inpMonthNbr) == "number") ? inpMonthNbr : currDate.getUTCMonth() + 1;
-		inpDayNbr = (inpDayNbr != "undefined" && typeof(inpDayNbr) == "number") ? inpDayNbr : currDate.getUTCDate();
+		inpDateNbr = (inpDateNbr != "undefined" && typeof(inpDateNbr) == "number") ? inpDateNbr : currDate.getUTCDate();
 		inpUTCOffsetNbr = (inpUTCOffsetNbr != "undefined" && typeof(inpUTCOffsetNbr) == "number") ? inpUTCOffsetNbr : 0.0;
 		inpDSTInd = (inpDSTInd != "undefined" && typeof(inpDSTInd) == "boolean") ? inpDSTInd : false;
 
-	    var julianDayCnt = calcJulianDayCnt(inpYearNbr, inpMonthNbr, inpDayNbr);
-	    rtnObj.solarNoonTimeTxt = calcSolarNoon(julianDayCnt, inpLongDegNbr, inpUTCOffsetNbr, inpDSTInd);
+	    var julianDayCnt = calcJulianDayCnt(inpYearNbr, inpMonthNbr, inpDateNbr);
+
+	    rtnObj.noonTimeTxt = calcSolarNoon(julianDayCnt, inpLongDegNbr, inpUTCOffsetNbr, inpDSTInd);
 	    rtnObj.sunriseTimeTxt = calcApparentSunriseSet(1, julianDayCnt, inpLatDegNbr, inpLongDegNbr, inpUTCOffsetNbr, inpDSTInd);
 	    rtnObj.sunsetTimeTxt = calcApparentSunriseSet(0, julianDayCnt, inpLatDegNbr, inpLongDegNbr, inpUTCOffsetNbr, inpDSTInd);
 
 	    return rtnObj;
 	};
+
+
+
+	SolarCalculator.ValidateDate = function(inpYearNbr, inpMonthNbr, inpDateNbr) {
+		var rtnObj = {};
+
+	    if ((isLeapYear(inpYearNbr)) && (inpMonthNbr == 2)) {
+	        if (inpDateNbr > 29) {
+	            inpDateNbr = 29;
+	        }
+	    } else {
+	        if (inpDateNbr > _monthList[inpMonthNbr - 1].numdays) {
+	            inpDateNbr = _monthList[inpMonthNbr - 1].numdays;
+	        }
+	    }
+
+	    rtnObj.year = inpYearNbr;
+	    rtnObj.month = inpMonthNbr;
+	    rtnObj.date = inpDateNbr;
+
+	    return rtnObj;
+	}
 
 
 
@@ -72,24 +101,19 @@
 	 * Calculates the Julian Day Count given a Gregorian date.
 	 * http://quasar.as.utexas.edu/BillInfo/JulianDatesG.html
 	 */
-	function calcJulianDayCnt(inpYearNbr, inpMonthNbr, inpDayNbr) {
-	    if ((isLeapYear(inpYearNbr)) && (inpMonthNbr == 2)) {
-	        if (inpDayNbr > 29) {
-	            inpDayNbr = 29;
-	        }
-	    } else {
-	        if (inpDayNbr > _monthList[inpMonthNbr - 1].numdays) {
-	            inpDayNbr = _monthList[inpMonthNbr - 1].numdays;
-	        }
-	    }
+	function calcJulianDayCnt(inpYearNbr, inpMonthNbr, inpDateNbr) {
+	    var validatedDate = SolarCalculator.ValidateDate(inpYearNbr, inpMonthNbr, inpDateNbr);
+
+	    inpDateNbr = validatedDate.date;
+
 	    if (inpMonthNbr <= 2) {
 	        inpYearNbr -= 1;
 	        inpMonthNbr += 12;
 	    }
 	    var A = Math.floor(inpYearNbr / 100);
 	    var B = 2 - A + Math.floor(A / 4);
-
-	    return Math.floor(JULIAN_NBRS.YEAR_DAYS * (inpYearNbr + JULIAN_NBRS.FIRST_YEAR_BCE)) + Math.floor(JULIAN_NBRS.DAYS_PER_MONTH_APPROX * (inpMonthNbr + 1)) + inpDayNbr + B - 1524.5;
+	    
+	    return Math.floor(JULIAN_NBRS.YEAR_DAYS * (inpYearNbr + JULIAN_NBRS.FIRST_YEAR_BCE)) + Math.floor(JULIAN_NBRS.DAYS_PER_MONTH_APPROX * (inpMonthNbr + 1)) + inpDateNbr + B - 1524.5;
 	}
 
 
@@ -167,7 +191,7 @@
 	            }
 	           rtnTimeTxt = timeDateString(julianDayCnt, localTimeMinuteCnt);
 	        }
-	    } else { // no sunrise/set found -- not exactly sure when we would fall into this logic
+	    } else { // no sunrise/set found -- This occurs in the extreme latitudes.
 			/*
 	        var dayOfYear = calcDayOfYearFromJulianDayCnt(inpJulianDayCnt);
 	        var jdy;
@@ -354,7 +378,7 @@
 	    var latRad = degToRad(lat);
 	    var sdRad = degToRad(solarDec);
 	    var HAarg = (Math.cos(degToRad(90.833)) / (Math.cos(latRad) * Math.cos(sdRad)) - Math.tan(latRad) * Math.tan(sdRad));
-	    var HA = Math.acos(HAarg);
+	    var HA = Math.acos(HAarg);  //Note: HAarg may be outside the domain [-1, 1], which happens when there is no sunrise.
 	    return HA; // in radians (for sunset, use -HA)
 	}
 
