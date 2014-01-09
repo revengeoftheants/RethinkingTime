@@ -30,7 +30,6 @@ body {
 }
 
 #headerCntnr {
-	position: fixed;
 	left: 0;
 	top: 0;
 	width: 96%;
@@ -99,17 +98,10 @@ body {
 	top: 535px;
 }
 
-#mainBodyCntnr {
-	margin-top: 77px;  /* Do not overlap the header. */
-}
-
 p {
 	padding: 0 40px 0 40px;
 }
 
-#firstPara {
-	padding: 40px 40px 0 40px;
-}
 
 #timeZonesMap {
 	overflow: hidden;  /* Have to add this so that IE does not allow content to display outside the SVG canvas when panning and zooming. */
@@ -284,8 +276,12 @@ button::-moz-focus-inner {
 	fill: #626262;
 }
 
-.arcActive {
+.arcWork {
 	fill: #79CEFF;
+}
+
+.arcSleep {
+	fill: #000000;
 }
 
 .arcLight {
@@ -304,4 +300,17 @@ button::-moz-focus-inner {
 	font-family: verdana, arial;
 	font-size: 0.7em;
 	fill: #777777;
+}
+
+.keyLabel {
+	font-family: verdana, arial;
+	font-size: 0.6em;
+	fill: #777777;
+}
+
+.keyLine {
+	fill: none;
+	stroke-width: 1px;
+	stroke: #626262;
+	stroke-opacity: 0.5;
 }

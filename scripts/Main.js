@@ -24,10 +24,10 @@
 	var HIGHTLIGHT_COLOR = "#FFFFCC";
 	var TIMEZONE_OFFSETS_DOMAIN = ["-11:00", "-10:00", "-9:30", "-9:00", "-8:00", "-7:00", "-6:00", "-5:00", "-4:30", "-4:00", "-3:30", "-3:00", "-2:00", "-1:00", "0:00", "1:00", "2:00", "3:00", "3:30", "4:00", "4:30", "5:00", "5:30", "5:45", "6:00", "6:30", "7:00", "8:00", "8:45", "9:00", "9:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:45", "13:00", "14:00"];
 	var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-	var CLOCK_NBRS = {WIDTH: 0, HEIGHT: 700, MAJOR_MARK_INTERVAL: 3, HAND_WIDTH: 3, ACTIVE_AM_HOURS: 3, ACTIVE_PM_HOURS: 5};
+	var CLOCK_NBRS = {WIDTH: 0, HEIGHT: 700, MAJOR_MARK_INTERVAL: 3, HAND_WIDTH: 3, WORK_AM_HOURS: 4, WORK_PM_HOURS: 5, SLEEP_PM_HOURS: 2, SLEEP_AM_HOURS: 7};
 	var ARC_X_AXIS_ROT_DEG_NBR = 0, LARGE_ARC_FLAG = 0;
 	var DAY_MINS_NBR = 1440;
-	var RING_NBRS = {INIT_INNER_RADIUS: 220, ARC_WIDTH: 10, ACTIVE_HOURS_ARC_MARGIN: 2.5, ARC_MARGIN: 20, MAX: 7, MAX_LABEL_CHARS: 30};
+	var RING_NBRS = {INIT_INNER_RADIUS: 220, ARC_WIDTH: 10, WORK_HOURS_ARC_MARGIN: 2.5, ARC_MARGIN: 20, MAX: 7, MAX_LABEL_CHARS: 30};
 	var INPUT_TXT = {ENABLED: 'Add a location (e.g., "Berlin")', DISABLED: "Must clear current locations", NO_RESULTS: "Could not find this location",
 					LIMIT: "Try again later. Google's request limit reached.", DENIED: "Google denied this request", INVALID: "What did you do?! Invalid request.", 
 					SERVER: "Server error. Try again."};
@@ -37,7 +37,7 @@
 	/**********************
 	 * Global variables
 	 **********************/
-	var _utcDateElem, _utcTimeElem, _locInputElem, _yearElem, _monthElem, _dateElem, _timeTool, _clockContentGroup;
+	var _utcDateElem, _utcTimeElem, _locInputElem, _yearElem, _monthElem, _dateElem, _relTimeClock, _clockContentGroup;
 	var _yearNbr, _monthNbr, _dateNbr, _timeSetInd = false;
 	var _localities = [];
 	var _defaultLoc = {latitude: 41.85, longitude: -87.649999};  // Default to Chicago.
@@ -82,7 +82,7 @@
 
 		createTimeZoneMap();
 
-		createRelativeTimeTool();
+		createRelativeTimeClock();
 
 		animate();
 	};
@@ -368,9 +368,9 @@
 
 
 	/*
-	 * Creates the "relative time" tool.
+	 * Creates the "relative time" clock.
 	 */
-	function createRelativeTimeTool() {
+	function createRelativeTimeClock() {
 		_yearElem = document.getElementById("year");
 		_monthElem = document.getElementById("month");
 		_dateElem = document.getElementById("date");
@@ -381,7 +381,7 @@
 		_locInputElem = document.getElementById("locationInput");
 		_locInputElem.placeholder = INPUT_TXT.ENABLED;
 
-		_timeTool = d3.select("#relativeTimeClock")
+		_relTimeClock = d3.select("#relativeTimeClock")
 			.attr("width", CLOCK_NBRS.WIDTH)
 		    .attr("height", CLOCK_NBRS.HEIGHT);
 
@@ -402,7 +402,7 @@
 		    var coords1 = convertPolarToCartesian(CLOCK_NBRS.WIDTH/2, CLOCK_NBRS.HEIGHT/2, markOuterRadiusNbr, degreesNbr);
 		    var coords2 = convertPolarToCartesian(CLOCK_NBRS.WIDTH/2, CLOCK_NBRS.HEIGHT/2, markInnerRadiusNbr, degreesNbr);
 
-		    _timeTool.append("svg:line")
+		    _relTimeClock.append("svg:line")
 		    	.attr("x1", coords1.x)
 		    	.attr("y1", coords1.y)
 		    	.attr("x2", coords2.x)
@@ -413,7 +413,7 @@
 		    if (cnt % CLOCK_NBRS.MAJOR_MARK_INTERVAL === 0) {
 			    var textCoords = convertPolarToCartesian(CLOCK_NBRS.WIDTH/2, CLOCK_NBRS.HEIGHT/2,  clockRadiusNbr * 0.9, degreesNbr);
 			    
-			    _timeTool.append("svg:text")
+			    _relTimeClock.append("svg:text")
 			    	.attr("x", textCoords.x)
 			    	.attr("y", textCoords.y)
 			    	.text(cnt)
@@ -425,8 +425,9 @@
 
 
 		// A group for the clock's content so that we can delete and refresh it easily.
-		_clockContentGroup = _timeTool.append("g");
+		_clockContentGroup = _relTimeClock.append("g");
 
+		createRelativeTimeClockKey();
 
 		if (navigator.geolocation) {
 			var options = {
@@ -434,10 +435,145 @@
 			};
 
 			// The callback is not getting called in Firefox for some reason...
-			navigator.geolocation.getCurrentPosition(initRelativeTimeTool, initRelativeTimeTool, options);
+			navigator.geolocation.getCurrentPosition(initRelativeTimeClock, initRelativeTimeClock, options);
 		} else {
-			initRelativeTimeTool(_defaultLoc);
+			initRelativeTimeClock(_defaultLoc);
 		}
+	}
+
+
+
+	/*
+	 * Creates a key for the clock.
+	 */
+	function createRelativeTimeClockKey() {
+
+		var origXCoordNbr = CLOCK_NBRS.WIDTH/12;
+		var origYCoordNbr = 45;
+		var workWidthNbr = 60;
+		var lightWidthNbr = 100;
+		var nightWidthNbr = 100;
+		var sleepWidthNbr = 60;
+		var totWidthNbr = lightWidthNbr + nightWidthNbr;
+		var textDeltaYNbr = 10;
+
+		_relTimeClock.append("svg:rect")
+			.attr("class", "arcWork")
+			.attr("x", 0)
+			.attr("y", 0)
+			.attr("width", workWidthNbr)
+			.attr("height", RING_NBRS.ARC_WIDTH + 2*RING_NBRS.WORK_HOURS_ARC_MARGIN)
+			.attr("transform", "translate(" + origXCoordNbr + "," + origYCoordNbr + ")");
+
+
+		var label = _relTimeClock.append("svg:text")
+			.attr("class", "keyLabel")
+			.attr("x", origXCoordNbr + 10)
+			.attr("y", origYCoordNbr - 30)
+			.text("");
+		label.append("tspan")
+			.text("Common");
+		label.append("tspan")
+			.attr("x", origXCoordNbr + 10)
+			.attr("dy", textDeltaYNbr)
+			.text("work hours");
+
+		_relTimeClock.append("svg:line")
+			.attr("class", "keyLine")
+			.attr("x1", origXCoordNbr + 37)
+			.attr("y1", origYCoordNbr - 15)
+			.attr("x2", origXCoordNbr + 30)
+			.attr("y2", origYCoordNbr - 3);
+
+		_relTimeClock.append("svg:rect")
+			.attr("class", "arcLight")
+			.attr("x", 0)
+			.attr("y", 0)
+			.attr("width", lightWidthNbr)
+			.attr("height", RING_NBRS.ARC_WIDTH)
+			.attr("transform", "translate(" + origXCoordNbr + "," + (origYCoordNbr + RING_NBRS.WORK_HOURS_ARC_MARGIN) + ")");
+		
+
+		label = _relTimeClock.append("svg:text")
+			.attr("class", "keyLabel")
+			.attr("x", origXCoordNbr + 40)
+			.attr("y", origYCoordNbr + 42)
+			.text("");
+		label.append("tspan")
+			.text("Daylight");
+		label.append("tspan")
+			.attr("x", origXCoordNbr + 40)
+			.attr("dy", textDeltaYNbr)
+			.text("hours");
+
+		_relTimeClock.append("svg:line")
+			.attr("class", "keyLine")
+			.attr("x1", origXCoordNbr + 63)
+			.attr("y1", origYCoordNbr + 30)
+			.attr("x2", origXCoordNbr + 80)
+			.attr("y2", origYCoordNbr + 8);
+
+
+		var xCoordNbr = origXCoordNbr + (totWidthNbr - sleepWidthNbr - 10);
+
+		_relTimeClock.append("svg:rect")
+			.attr("class", "arcSleep")
+			.attr("x", 0)
+			.attr("y", 0)
+			.attr("width", sleepWidthNbr)
+			.attr("height", RING_NBRS.ARC_WIDTH + 2*RING_NBRS.WORK_HOURS_ARC_MARGIN)
+			.attr("transform", "translate(" + xCoordNbr + "," + (origYCoordNbr) + ")");
+
+
+		label = _relTimeClock.append("svg:text")
+			.attr("class", "keyLabel")
+			.attr("x", origXCoordNbr + 100)
+			.attr("y", origYCoordNbr + -30)
+			.text("");
+		label.append("tspan")
+			.text("Night");
+		label.append("tspan")
+			.attr("x", origXCoordNbr + 100)
+			.attr("dy", textDeltaYNbr)
+			.text("hours");
+
+		_relTimeClock.append("svg:line")
+			.attr("class", "keyLine")
+			.attr("x1", origXCoordNbr + 112)
+			.attr("y1", origYCoordNbr - 15)
+			.attr("x2", origXCoordNbr + 115)
+			.attr("y2", origYCoordNbr + 1);
+
+
+		xCoordNbr = origXCoordNbr + lightWidthNbr;
+
+		_relTimeClock.append("svg:rect")
+			.attr("class", "arcNight")
+			.attr("x", 0)
+			.attr("y", 0)
+			.attr("width", nightWidthNbr)
+			.attr("height", RING_NBRS.ARC_WIDTH)
+			.attr("transform", "translate(" + xCoordNbr + "," + (origYCoordNbr + RING_NBRS.WORK_HOURS_ARC_MARGIN) + ")");
+
+
+		label = _relTimeClock.append("svg:text")
+			.attr("class", "keyLabel")
+			.attr("x", origXCoordNbr + 165)
+			.attr("y", origYCoordNbr + -30)
+			.text("");
+		label.append("tspan")
+			.text("Common");
+		label.append("tspan")
+			.attr("x", origXCoordNbr + 165)
+			.attr("dy", textDeltaYNbr)
+			.text("sleep hours");
+
+		_relTimeClock.append("svg:line")
+			.attr("class", "keyLine")
+			.attr("x1", origXCoordNbr + 184)
+			.attr("y1", origYCoordNbr - 15)
+			.attr("x2", origXCoordNbr + 170)
+			.attr("y2", origYCoordNbr - 3);
 	}
 
 
@@ -445,11 +581,12 @@
 	/*
 	 * Initializes the relative time clock with a locality ring representing the user's location if possible, otherwise Chicago.
 	 */
-	function initRelativeTimeTool(inpDefaultPosition) {
+	function initRelativeTimeClock(inpDefaultPosition) {
 		_defaultLoc = (inpDefaultPosition !== undefined && inpDefaultPosition.coords !== undefined) ? inpDefaultPosition.coords : _defaultLoc;
 		
 		retrieveLocData(0, _defaultLoc);
 	}
+
 
 
 	/*
@@ -613,17 +750,26 @@
 	 * Creates a ring for a locality.
 	 */
 	function createLocalityRing(inpSunriseTimeTxt, inpNoonTimeTxt, inpSunsetTimeTxt, inpInnerRadiusLenNbr, inpLabelTxt, inpLocalityLatitudeDegNbr) {
-		var activeAMRadianNbr = convertTimeToRadianNbr(CLOCK_NBRS.ACTIVE_AM_HOURS.toString() + ":00");
-		var activePMRadianNbr = convertTimeToRadianNbr(CLOCK_NBRS.ACTIVE_PM_HOURS.toString() + ":00");
+		var workAMRadianNbr = convertTimeToRadianNbr(CLOCK_NBRS.WORK_AM_HOURS.toString() + ":00");
+		var workPMRadianNbr = convertTimeToRadianNbr(CLOCK_NBRS.WORK_PM_HOURS.toString() + ":00");
+		var sleepAMRadianNbr = convertTimeToRadianNbr(CLOCK_NBRS.SLEEP_AM_HOURS.toString() + ":00");
+		var sleepPMRadianNbr = convertTimeToRadianNbr(CLOCK_NBRS.SLEEP_PM_HOURS.toString() + ":00");
 
-		var activeStartRadianNbr = convertTimeToRadianNbr(inpNoonTimeTxt) - activeAMRadianNbr;
-		var activeEndRadianNbr = convertTimeToRadianNbr(inpNoonTimeTxt) + activePMRadianNbr;
+		var solarMidnightTxt = addTime(inpNoonTimeTxt, 12*60);
+
+		var workStartRadianNbr = convertTimeToRadianNbr(inpNoonTimeTxt) - workAMRadianNbr;
+		var workEndRadianNbr = convertTimeToRadianNbr(inpNoonTimeTxt) + workPMRadianNbr;
+		var sleepStartRadianNbr = convertTimeToRadianNbr(solarMidnightTxt) - sleepPMRadianNbr;
+		var sleepEndRadianNbr = convertTimeToRadianNbr(solarMidnightTxt) + sleepAMRadianNbr;
 		var sunlightStartRadianNbr = convertTimeToRadianNbr(inpSunriseTimeTxt);
 		var sunlightEndRadianNbr = convertTimeToRadianNbr(inpSunsetTimeTxt);
 
 
-		if (activeEndRadianNbr < activeStartRadianNbr) {
-			activeStartRadianNbr = -(2*Math.PI - activeStartRadianNbr);
+		if (workEndRadianNbr < workStartRadianNbr) {
+			workStartRadianNbr = -(2*Math.PI - workStartRadianNbr);
+		}
+		if (sleepEndRadianNbr < sleepStartRadianNbr) {
+			sleepStartRadianNbr = -(2*Math.PI - sleepStartRadianNbr);
 		}
 		if (sunlightEndRadianNbr < sunlightStartRadianNbr) {
 			sunlightStartRadianNbr = -(2*Math.PI - sunlightStartRadianNbr);
@@ -646,14 +792,25 @@
 		var outerRadiusLenNbr = inpInnerRadiusLenNbr + RING_NBRS.ARC_WIDTH;
 
 		var activeHoursArc = d3.svg.arc()
-			.innerRadius(innerRadiusLenNbr - RING_NBRS.ACTIVE_HOURS_ARC_MARGIN)
-			.outerRadius(outerRadiusLenNbr + RING_NBRS.ACTIVE_HOURS_ARC_MARGIN)
-			.startAngle(activeStartRadianNbr)
-			.endAngle(activeEndRadianNbr);
+			.innerRadius(innerRadiusLenNbr - RING_NBRS.WORK_HOURS_ARC_MARGIN)
+			.outerRadius(outerRadiusLenNbr + RING_NBRS.WORK_HOURS_ARC_MARGIN)
+			.startAngle(workStartRadianNbr)
+			.endAngle(workEndRadianNbr);
 
 		_clockContentGroup.append("path")
-			.attr("class", "arcActive")
+			.attr("class", "arcWork")
 			.attr("d", activeHoursArc)
+			.attr("transform", "translate(" + CLOCK_NBRS.WIDTH/2 + "," + CLOCK_NBRS.HEIGHT/2 + ")");
+
+		var sleepHoursArc = d3.svg.arc()
+			.innerRadius(innerRadiusLenNbr - RING_NBRS.WORK_HOURS_ARC_MARGIN)
+			.outerRadius(outerRadiusLenNbr + RING_NBRS.WORK_HOURS_ARC_MARGIN)
+			.startAngle(sleepStartRadianNbr)
+			.endAngle(sleepEndRadianNbr);
+
+		_clockContentGroup.append("path")
+			.attr("class", "arcSleep")
+			.attr("d", sleepHoursArc)
 			.attr("transform", "translate(" + CLOCK_NBRS.WIDTH/2 + "," + CLOCK_NBRS.HEIGHT/2 + ")");
 
 		var sunlightArc = d3.svg.arc()
@@ -681,8 +838,8 @@
 
 		// Label this ring.
 		var labelArc = d3.svg.arc()
-			.innerRadius(outerRadiusLenNbr + RING_NBRS.ACTIVE_HOURS_ARC_MARGIN + 2)
-			.outerRadius(outerRadiusLenNbr + RING_NBRS.ACTIVE_HOURS_ARC_MARGIN + 2)
+			.innerRadius(outerRadiusLenNbr + RING_NBRS.WORK_HOURS_ARC_MARGIN + 2)
+			.outerRadius(outerRadiusLenNbr + RING_NBRS.WORK_HOURS_ARC_MARGIN + 2)
 			.startAngle(-Math.PI)
 			.endAngle(Math.PI);
 		
@@ -781,6 +938,28 @@
 		rtnTimeTxt += inpSecondNbr.toString();
 
 		return rtnTimeTxt;
+	}
+
+
+
+	/*
+	 * Adds/subtracts the indicated number of minutes to the passed base time.
+	 * The output range is 00:00 to 23:59.
+	 *
+	 * @param inpBaseTimeTxt - Base time in format HH:MM
+	 * @param inpToAddMinutesNbr - Number of minutes to add to the base time
+	 */
+	function addTime(inpBaseTimeTxt, inpToAddMinutesNbr) {
+		var hourAndMin = inpBaseTimeTxt.split(":");
+
+		var totalMinsNbr = Number(hourAndMin[0]) * 60 + Number(hourAndMin[1]) + inpToAddMinutesNbr;
+
+		var newMinsNbr = totalMinsNbr % DAY_MINS_NBR;
+
+		var hoursNbr = Math.floor(newMinsNbr / 60);
+		var minutesNbr = newMinsNbr - (hoursNbr * 60);
+
+		return hoursNbr + ":" + minutesNbr;
 	}
 
 
