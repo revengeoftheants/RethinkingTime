@@ -47,20 +47,49 @@
 					<strike>What time is it in Berlin right now?</strike> &nbsp&nbspWhat's it like in Berlin right now?
 				</h3>
 				<div id="inputsCntnr">
-					<div id="locationInputCntnr">
-						<input id="locationInput" onkeyup="Main.HandleLocationInputOnKeyup(event)" type="text" />
-						<button onclick="Main.HandleClearButtonClick()">Clear</button>
+					<div>
+						<div class="rightSideInputsCntnr">
+							<div class="radioCntnr">
+								<input id="utcRadio" type="radio" name="clockType" value="UTC" onchange="Main.HandleTimeRadioChange()" checked/>
+								UTC
+							</div>
+							<div class="radioCntnr">
+								<input type="radio" name="clockType" value="Local" onchange="Main.HandleTimeRadioChange()"/>
+								Local
+							</div>
+						</div>
 					</div>
-					<div id="dateInputsCntnr">
-						<button id="todayBtn" onclick="Main.HandleTodayButtonClick()">Today</button>
-						<div id="yearCntnr" class="dateInputCntnr">Year
-							<input id="year" class="dateInput" onkeyup="Main.HandleDateOnKeyup(event)" type="text" />
+					<div class="additionalRowInputsCntnr">
+						<div id="locationInputCntnr">
+							<input id="locationInput" spellcheck="false" onkeyup="Main.HandleLocationInputOnKeyUp(event)" type="text" />
+							<button onclick="Main.HandleClearButtonClick()">Clear</button>
 						</div>
-						<div id="monthCntnr" class="dateInputCntnr">Month
-							<input id="month" class="dateInput" onkeyup="Main.HandleDateOnKeyup(event)" type="text" />
-						</div>
-						<div id="dateCntnr" class="dateInputCntnr">Day
-							<input id="date" class="dateInput" onkeyup="Main.HandleDateOnKeyup(event)" type="text" />
+						<div class="rightSideInputsCntnr">
+							<button class="dateBtn dateBtnBottomAlign" onclick="Main.HandleTodayButtonClick()">Today</button>
+							<div class="dateInputCntnr dateInputCntnrFourDigit">Year
+								<input id="year" type="text" class="dateInput dateInputFourDigit" onkeyup="Main.HandleDateOnKeyUp(event)" />
+							</div>
+							<div class="dateInputCntnr dateInputCntnrTwoDigit">Month
+								<input id="month" type="text" class="dateInput dateInputTwoDigit" onkeyup="Main.HandleDateOnKeyUp(event)" />
+							</div>
+							<div class="dateInputCntnr dateInputCntnrTwoDigit">Day
+								<input id="day" type="text" class="dateInput dateInputTwoDigit" onkeyup="Main.HandleDateOnKeyUp(event)" />
+							</div>
+						</div>				
+					</div>
+					<div class="additionalRowInputsCntnr">
+						<div class="rightSideInputsCntnr">
+							<button class="dateBtn dateBtnTopAlign" onclick="Main.HandleNowButtonClick()">Now</button>
+							<div id="dateSpaceHolderFourDigitCntnr" class="dateInputCntnr dateInputCntnrFourDigit">
+							</div>
+							<div class="dateInputCntnr dateInputCntnrTwoDigit">
+								<input id="hour" type="text" class="dateInput dateInputTwoDigit" onkeyup="Main.HandleTimeOnKeyUp(event)" />
+								Hour
+							</div>
+							<div class="dateInputCntnr dateInputCntnrTwoDigit">
+								<input id="minute" type="text" class="dateInput dateInputTwoDigit" onkeyup="Main.HandleTimeOnKeyUp(event)" />
+								Minute
+							</div>							
 						</div>
 					</div>
 				</div>

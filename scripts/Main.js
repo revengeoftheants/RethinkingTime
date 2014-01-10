@@ -37,8 +37,8 @@
 	/**********************
 	 * Global variables
 	 **********************/
-	var _utcDateElem, _utcTimeElem, _locInputElem, _yearElem, _monthElem, _dateElem, _relTimeClock, _clockContentGroup;
-	var _yearNbr, _monthNbr, _dateNbr, _timeSetInd = false;
+	var _utcDateElem, _utcTimeElem, _locInputElem, _utcRadioElem, _yearElem, _monthElem, _dateElem, _hourElem, _minuteElem, _relTimeClock, _clockContentGroup, _clockHandGroup;
+	var _yearNbr, _monthNbr, _dateNbr, _hourNbr, _minuteNbr, _userSetDateInd = false, _userSetTimeInd = false, _userMovingHandInd = false;
 	var _localities = [];
 	var _defaultLoc = {latitude: 41.85, longitude: -87.649999};  // Default to Chicago.
 	var _geocoder;
@@ -78,11 +78,11 @@
 
 		setupPrototypes();
 
-		updateCurrDateAndTime();
-
 		createTimeZoneMap();
 
 		createRelativeTimeClock();
+
+		updateCurrDateAndTime();
 
 		animate();
 	};
@@ -90,9 +90,9 @@
 
 
 	/*
-	 * Handles the Keyup event of the location input box.
+	 * Handles the KeyUp event of the location input box.
 	 */
-	Main.HandleLocationInputOnKeyup = function(inpEvent) {
+	Main.HandleLocationInputOnKeyUp = function(inpEvent) {
 		if (inpEvent.keyCode == 13) {			
 			retrieveLocData(1, _locInputElem.value);
 			_locInputElem.value = "";
@@ -115,11 +115,35 @@
 
 
 	/*
-	 * Handles the click event of the Clear button.
+	 * Handles the changing of the time reference (UTC vs local)
+	 */
+	Main.HandleTimeRadioChange = function() {
+		setDate(true);
+		setTime(true);
+		updateLocalityTimes();
+	}
+
+
+
+	/*
+	 * Handles the click event of the Today button.
 	 */
 	Main.HandleTodayButtonClick = function() {
-		setCurrentDate();
+		_userSetDateInd = false;
+
+		setDate(false);
 		updateLocalityTimes();
+	}
+
+
+
+	/*
+	 * Handles the click event of the Now button.
+	 */
+	Main.HandleNowButtonClick = function() {
+		_userSetTimeInd = false;
+
+		setTime(false);
 	}
 
 
@@ -127,7 +151,7 @@
 	/*
 	 * Handles the OnKeyUp event of date input boxes.
 	 */
-	Main.HandleDateOnKeyup = function(inpEvent) {
+	Main.HandleDateOnKeyUp = function(inpEvent) {
 		var validDataInd = true;
 
 		if (isNaN(_yearElem.value)) {
@@ -154,7 +178,9 @@
 
 
 		if (inpEvent.keyCode == 13 && validDataInd) {
-			var yearNbr = Number(_yearElem.value);
+			_userSetDateInd = true;
+
+			var yearNbr = parseInt(_yearElem.value);
 			if (yearNbr < 1) {
 				yearNbr = 1;
 			} else if (yearNbr > 3000) {
@@ -163,7 +189,7 @@
 			_yearNbr = _yearElem.value = yearNbr;
 
 
-			var monthNbr = Number(_monthElem.value);
+			var monthNbr = parseInt(_monthElem.value);
 			if (monthNbr < 1) {
 				monthNbr = 1;
 			} else if (monthNbr > 12) {
@@ -173,7 +199,7 @@
 			_monthElem.value = (_monthNbr < 10) ? "0" + _monthNbr.toString() : _monthNbr;
 
 
-			var dateNbr = Number(_dateElem.value);
+			var dateNbr = parseInt(_dateElem.value);
 			if (dateNbr < 1) {
 				dateNbr = 1;
 			} else if (dateNbr > 31) {
@@ -181,10 +207,50 @@
 			}
 			// This will correct the last day of February for Leap Year if needed.
 			var validatedDate = SolarCalculator.ValidateDate(_yearNbr, _monthNbr, dateNbr);
-			_dateNbr = Number(validatedDate.date);
+			_dateNbr = parseInt(validatedDate.date);
 			_dateElem.value = (_dateNbr < 10) ? "0" + _dateNbr.toString() : _dateNbr;
 
+
 			updateLocalityTimes();
+		}
+	}
+
+
+
+	/*
+	 * Handles the OnKeyUp event of time input boxes.
+	 */
+	Main.HandleTimeOnKeyUp = function(inpEvent) {
+		var validDataInd = true;
+
+		if (isNaN(_hourElem.value)) {
+			_hourElem.style.backgroundColor = INPUT_COLORS.PROBLEM;
+		} else {
+			_hourElem.style.backgroundColor = "";
+		}
+
+		if (isNaN(_minuteElem.value)) {
+			_minuteElem.style.backgroundColor = INPUT_COLORS.PROBLEM;
+		} else {
+			_minuteElem.style.backgroundColor = "";
+		}
+
+		if (inpEvent.keyCode == 13 && validDataInd) {
+			_userSetTimeInd = true;
+			var hourNbr = parseInt(_hourElem.value);
+			if (hourNbr < 0 || hourNbr > 23) {
+				hourNbr = 0;
+			}
+			_hourNbr = hourNbr;
+			_hourElem.value = (_hourNbr < 10) ? "0" + _hourNbr.toString() : _hourNbr;
+
+
+			var minuteNbr = parseInt(_minuteElem.value);
+			if (minuteNbr < 0 || minuteNbr > 59) {
+				minuteNbr = 0;
+			}
+			_minuteNbr = minuteNbr;
+			_minuteElem.value = (_minuteNbr < 10) ? "0" + _minuteNbr.toString() : _minuteNbr;
 		}
 	}
 
@@ -224,7 +290,7 @@
 	function updateLocalityTimes() {
 		for (var idxNbr = 0, lenNbr = _localities.length; idxNbr < lenNbr; idxNbr++) {
 			var locality = _localities[idxNbr];
-			var solarTimes = SolarCalculator.Calculate(locality.latitude, locality.longitude, _yearNbr, _monthNbr, _dateNbr);
+			var solarTimes = retrieveSolarTimes(locality.latitude, locality.longitude, _yearNbr, _monthNbr, _dateNbr);
 
 			locality.noon = solarTimes.noonTimeTxt;
 			locality.sunrise = solarTimes.sunriseTimeTxt;
@@ -239,18 +305,110 @@
 
 
 	/*
-	 * Sets the date inputs and global variables to the current UTC date.
+	 * Sets the date inputs and global variables.
+	 *
+	 * @param inpTimeReferenceChangeInd - Boolean indicating whether or not to change the time reference (e.g. from UTC to local or vice versa).
 	 */
-	function setCurrentDate() {
-		// Populate our date input and global variables with today.
+	function setDate(inpTimeReferenceChangeInd) {
 		var date = new Date();
-		_yearNbr = date.getUTCFullYear();
-		_monthNbr = date.getUTCMonth() + 1;
-		_dateNbr = date.getUTCDate();
 
-		_yearElem.value = _yearNbr;
-		_monthElem.value = (_monthNbr < 10) ? "0" + _monthNbr.toString() : _monthNbr.toString();
-		_dateElem.value = (_dateNbr < 10) ? "0" + _dateNbr.toString() : _dateNbr.toString();
+		if (_utcRadioElem.checked) {  // We're going to set the date to UTC.
+			if (_userSetDateInd) {  // We're going to use the date the user set rather than the current date.
+				if (inpTimeReferenceChangeInd) {  // The current date we have is local time.
+					date.setFullYear(_yearNbr);
+					date.setMonth(_monthNbr - 1);
+					date.setDate(_dateNbr);
+				} else {  // The current date we have is UTC time.
+					date.setUTCFullYear(_yearNbr);
+					date.setUTCMonth(_monthNbr - 1);
+					date.setUTCDate(_dateNbr);					
+				}
+			}
+
+			_yearNbr = date.getUTCFullYear();
+			_monthNbr = date.getUTCMonth() + 1;
+			_dateNbr = date.getUTCDate();
+
+		} else {  // We're going to set the date to local time.
+			if (_userSetDateInd) {  // We're going to use the date the user set.
+				if (inpTimeReferenceChangeInd) {  // The current date we have is UTC.
+					date.setUTCFullYear(_yearNbr);
+					date.setUTCMonth(_monthNbr - 1);
+					date.setUTCDate(_dateNbr);
+				} else {  // The current date we have is local time.
+					date.setFullYear(_yearNbr);
+					date.setMonth(_monthNbr - 1);
+					date.setDate(_dateNbr);							
+				}
+			}
+			
+			_yearNbr = date.getFullYear();
+			_monthNbr = date.getMonth() + 1;
+			_dateNbr = date.getDate();
+		}
+
+
+		// A user cannot update an element if we're currently updating it in code.
+		if (document.activeElement !== _yearElem) {
+			_yearElem.value = _yearNbr;
+		}
+
+		if (document.activeElement !== _monthElem) {
+			_monthElem.value = (_monthNbr < 10) ? "0" + _monthNbr.toString() : _monthNbr.toString();
+		}
+
+		if (document.activeElement !== _dateElem) {
+			_dateElem.value = (_dateNbr < 10) ? "0" + _dateNbr.toString() : _dateNbr.toString();
+		}
+	}
+
+
+	/*
+	 * Sets the time inputs and global variables time.
+	 *
+	 * @param inpTimeReferenceChangeInd - Boolean indicating whether or not to change the time reference (e.g. from UTC to local or vice versa).
+	 */
+	function setTime(inpTimeReferenceChangeInd) {
+		var date = new Date();
+
+		if (_utcRadioElem.checked) {  // We're going to set the time to UTC.
+			if (_userSetTimeInd) {  // We're going to use the time the user set rather than the current time.
+				if (inpTimeReferenceChangeInd) {  // The current time we have is local time.
+					date.setHours(_hourNbr);
+					date.setMinutes(_minuteNbr);
+				} else {  // The current time we have is UTC time.
+					date.setUTCHours(_hourNbr);
+					date.setUTCMinutes(_minuteNbr);				
+				}
+			}
+
+			_hourNbr = date.getUTCHours();
+			_minuteNbr = date.getUTCMinutes();
+
+		} else {  // We're going to set the time to local time.
+			if (_userSetTimeInd) {  // We're going to use the time the user set.
+				if (inpTimeReferenceChangeInd) {  // The current time we have is UTC.
+					date.setUTCHours(_hourNbr);
+					date.setUTCMinutes(_minuteNbr);
+				} else {  // The time we have is local time.
+					date.setHours(_hourNbr);
+					date.setMinutes(_minuteNbr);							
+				}
+			}
+			
+			_hourNbr = date.getHours();
+			_minuteNbr = date.getMinutes();
+		}
+
+
+		// A user cannot update an element if we're currently updating it in code.
+		if (document.activeElement !== _hourElem) {
+			_hourElem.value = (_hourNbr < 10) ? "0" + _hourNbr.toString() : _hourNbr.toString();
+		}
+
+		if (document.activeElement !== _minuteElem) {
+			_minuteElem.value = (_minuteNbr < 10) ? "0" + _minuteNbr.toString() : _minuteNbr.toString();
+		}
 	}
 
 
@@ -371,11 +529,15 @@
 	 * Creates the "relative time" clock.
 	 */
 	function createRelativeTimeClock() {
+		_utcRadioElem = document.getElementById("utcRadio");
 		_yearElem = document.getElementById("year");
 		_monthElem = document.getElementById("month");
-		_dateElem = document.getElementById("date");
+		_dateElem = document.getElementById("day");
+		_hourElem = document.getElementById("hour");
+		_minuteElem = document.getElementById("minute");
 
-		setCurrentDate();
+		setDate(false);
+		setTime(false);
 
 
 		_locInputElem = document.getElementById("locationInput");
@@ -636,7 +798,7 @@
 			        if (_localities.indexOf(name) === -1) {
 			        	var coords = localityResult.geometry.location;
 
-			        	var solarTimes = SolarCalculator.Calculate(coords.lat(), coords.lng(), _yearNbr, _monthNbr, _dateNbr);
+			        	var solarTimes = retrieveSolarTimes(coords.lat(), coords.lng(), _yearNbr, _monthNbr, _dateNbr);
 
 			        	var locality = {name: name, latitude: coords.lat(), longitude: coords.lng(), noon: solarTimes.noonTimeTxt, sunrise: solarTimes.sunriseTimeTxt, sunset: solarTimes.sunsetTimeTxt};
 
@@ -686,9 +848,26 @@
 
 
 	/*
+	 * Retrieve solar times.
+	 */
+	function retrieveSolarTimes(inpLatitudeDegNbr, inpLongitudeDegNbr, inpYearNbr, inpMonthNbr, inpDateNbr) {
+
+		var utcOffsetNbr = 0;
+
+		if (_utcRadioElem.checked === false) {
+			// We're using local time as our reference, so we need to calculate solar times with reference to that.
+			var date = new Date(_yearNbr, _monthNbr, _dateNbr, 0, 0, 0);
+			utcOffsetNbr = -date.getTimezoneOffset() / 60;  // Pass the UTC offset as a fraction of an hour, either positive or negative.
+		}
+
+		return SolarCalculator.Calculate(inpLatitudeDegNbr, inpLongitudeDegNbr, inpYearNbr, inpMonthNbr, inpDateNbr, utcOffsetNbr);
+	}
+
+
+	/*
 	 * Creates rings to represent each of our current localities.
 	 */
-	function createLocalityRings () {
+	function createLocalityRings() {
 
 		_localities.sort( function(a, b) {
 			if (a.sunrise < b.sunrise) {
@@ -722,14 +901,47 @@
 		}
 
 
-		// A hande to show the current time. We build this here because SVG elements are ordered by how they appear in the document.
-		_clockContentGroup.append("svg:rect")
+		// A hand to show the current time. We build this here because SVG elements are ordered by how they appear in the document.
+		_clockHandGroup = _clockContentGroup.append("g");
+
+		var clockHand = _clockHandGroup.append("svg:rect")
 			.attr("id", "clockHand")
 			.attr("x", CLOCK_NBRS.WIDTH/2 - CLOCK_NBRS.HAND_WIDTH/2)
 			.attr("y", CLOCK_NBRS.HEIGHT/2)
 			.attr("width",  CLOCK_NBRS.HAND_WIDTH)
 			.attr("height", CLOCK_NBRS.HEIGHT/2 - 100);
-		}
+
+		// Add a transparent hand on top that is larger than the real hand. This will creater a larger click area for the user.
+		var clickableWidthNbr = CLOCK_NBRS.HAND_WIDTH * 10;
+		var clockClickableHand = _clockHandGroup.append("svg:rect")
+			.attr("x", CLOCK_NBRS.WIDTH/2 - clickableWidthNbr/2)
+			.attr("y", CLOCK_NBRS.HEIGHT/2)
+			.attr("width",  clickableWidthNbr)
+			.attr("height", CLOCK_NBRS.HEIGHT/2 - 100)
+			.attr("opacity", 0.0);		
+
+		var drag = d3.behavior.drag()
+			.on("dragstart", function() {
+					_userMovingHandInd = true;
+				})
+			.on("drag", function() {
+					_userSetTimeInd = true;
+					var mouseCoords = d3.mouse(_relTimeClock[0][0]);
+					var mouseDegNbr =  convertCartesianToDegNbr(CLOCK_NBRS.WIDTH/2, CLOCK_NBRS.HEIGHT/2, mouseCoords[0], mouseCoords[1]);
+					var timeObj = convertDegreesToTime(mouseDegNbr);
+
+					_hourNbr = timeObj.hourNbr;
+					_minuteNbr = timeObj.minuteNbr;
+					setTime(false);
+
+					_clockHandGroup.attr("transform", "rotate(" + (mouseDegNbr - 180) + " " + CLOCK_NBRS.WIDTH/2 + " " + CLOCK_NBRS.HEIGHT/2 + ")");
+				})
+			.on("dragend", function() {
+					_userMovingHandInd = false;
+				});
+
+		_clockHandGroup.call(drag);
+	}
 
 
 
@@ -898,17 +1110,24 @@
 	 * Updates the current date and time
 	 */
 	function updateCurrDateAndTime() {
+
+		// Update the title header time.
 		var date = new Date();
 		_utcDateElem.innerHTML = MONTHS[date.getUTCMonth()] + " " + date.getUTCDate() + ", " + date.getUTCFullYear();
 		_utcTimeElem.innerHTML = formatTime(date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds());
 
-		if (_timeSetInd) {
-			date.setUTCHours();
-			date.setUTCMinutes();
+		if (_userSetDateInd === false) {
+			setDate(false);
+		}
+		if (_userSetTimeInd === false) {
+			setTime(false);
 		}
 
-		d3.select("#clockHand")
-			.attr("transform", "rotate(" + convertTimeToDegNbr(date) + " " + (CLOCK_NBRS.WIDTH/2 - CLOCK_NBRS.HAND_WIDTH/2) + " " + CLOCK_NBRS.HEIGHT/2 + ")");
+		if (_userMovingHandInd === false) {
+			if (_clockHandGroup) {
+				_clockHandGroup.attr("transform", "rotate(" + convertTimeToDegNbr(_hourNbr, _minuteNbr) + " " + CLOCK_NBRS.WIDTH/2 + " " + CLOCK_NBRS.HEIGHT/2 + ")");
+			}
+		}
 	}
 
 
@@ -983,12 +1202,10 @@
 
 
 	/*
-	 * Converts a Date objects hour and minute into the range 0 to 360 degrees.
+	 * Converts hour and minute into the range 0 to 360 degrees.
 	 */
-	function convertTimeToDegNbr(inpDateObj) {
-		var date = (inpDateObj !== undefined) ? inpDateObj : new Date();
-
-		var minutesNbr = date.getUTCMinutes() + (date.getUTCHours() * 60);
+	function convertTimeToDegNbr(inpHourNbr, inpMinuteNbr) {
+		var minutesNbr = inpMinuteNbr + (inpHourNbr * 60);
 
 		return (minutesNbr/DAY_MINS_NBR * 360) - 180;  // We have to subtract 180 degrees because the SVG canvas has positive Y pointing down.
 	}
@@ -998,13 +1215,50 @@
 	/*
 	 * Converts polar coordinates to Cartesian.
 	 */
-	function convertPolarToCartesian(inpCenterXCoordNbr, inpCenterYCoordNbr, inpRadiusLenNbr, inpAngleDegNbr) {
+	function convertPolarToCartesian(inpOriginXCoordNbr, inpOriginYCoordNbr, inpRadiusLenNbr, inpAngleDegNbr) {
 	  var angleRadiansNbr = (inpAngleDegNbr - 90) * Math.PI / 180.0;
 
 	  return {
-	    x: inpCenterXCoordNbr + (inpRadiusLenNbr * Math.cos(angleRadiansNbr)),
-	    y: inpCenterYCoordNbr + (inpRadiusLenNbr * Math.sin(angleRadiansNbr))
+	    x: inpOriginXCoordNbr + (inpRadiusLenNbr * Math.cos(angleRadiansNbr)),
+	    y: inpOriginYCoordNbr + (inpRadiusLenNbr * Math.sin(angleRadiansNbr))
 	  };
+	}
+
+
+
+	/*
+	 * Converts Cartesian coordinates to a degree number away from an origin.
+	 */
+	function convertCartesianToDegNbr(inpOriginXCoordNbr, inpOriginYCoordNbr, inpXCoordNbr, inpYCoordNbr) {
+		// Normalize the mouse coordinates to an origin of 0,0.
+		inpXCoordNbr -= inpOriginXCoordNbr;
+		inpYCoordNbr -= inpOriginYCoordNbr;
+
+		var upVectorMagnitudeNbr = inpOriginYCoordNbr;
+		var mouseVectorMagnitudeNbr = Math.sqrt((inpXCoordNbr*inpXCoordNbr) + (inpYCoordNbr*inpYCoordNbr));
+
+		// Note: The X component of the up vector is 0, so we only have to multiply the Y components.
+		var dotProdNbr = inpOriginYCoordNbr * -inpYCoordNbr;
+		
+		// Have to account for what side of the Y axis we're on so that we can get both positive and negative degree values.
+		var xSignNbr = (inpXCoordNbr < 0) ? -1 : 1;
+
+		return Math.acos(dotProdNbr/(upVectorMagnitudeNbr * mouseVectorMagnitudeNbr)) * (180/Math.PI) * xSignNbr;
+	}
+
+
+
+	/*
+	 * Converts a degree number to time.
+	 */
+	function convertDegreesToTime(inpDegNbr) {
+		var totMinutesNbr = (inpDegNbr / 360) * DAY_MINS_NBR;
+
+		var rtnObj = {};
+		rtnObj.hourNbr = Math.floor(totMinutesNbr / 60);
+		rtnObj.minuteNbr = Math.floor(totMinutesNbr - (rtnObj.hourNbr * 60));
+
+		return rtnObj;
 	}
 
 
