@@ -52,7 +52,19 @@
 	 * Returns a Boolean indicating whether or not this browser is able to view this content.
 	 */
 	Main.CheckCompatibility = function() {
-		return !!document.createElementNS && !!document.createElementNS('http://www.w3.org/2000/svg', "svg").createSVGRect;
+		var rtnInd;
+		if (!!document.createElementNS && !!document.createElementNS('http://www.w3.org/2000/svg', "svg").createSVGRect) {
+			rtnInd = true;
+		} else {
+			document.body.innerHTML = "";
+			var errMsg = document.createElement('div');
+			errMsg.className = "compatibilityMsg";
+			errMsg.innerHTML = ['Your browser does not support <a href="http://en.wikipedia.org/wiki/Scalable_Vector_Graphics">SVG</a>.<br />','Try using <a href="https://www.google.com/intl/en/chrome/browser/">Chrome</a>.'].join('\n');
+			document.body.insertBefore(errMsg, document.body.childNodes[0]);
+			rtnInd = false;
+		}
+
+		return rtnInd;
 	};
 
 
@@ -63,10 +75,9 @@
 	Main.Init = function() {
 
 		// Size the map to the current browser window size, taking into account our minimum and maximum width settings.
-		var bodyElem = document.getElementsByTagName("body")[0];
-		MAP_NBRS.WIDTH = bodyElem.clientWidth;
+		MAP_NBRS.WIDTH = document.body.clientWidth;
 		MAP_NBRS.HEIGHT = MAP_NBRS.WIDTH/2;
-		MAP_NBRS.SCALE = ((bodyElem.clientWidth - BODY_NBRS.MIN_WIDTH) / (BODY_NBRS.MAX_WIDTH - BODY_NBRS.MIN_WIDTH)) * (MAP_NBRS.MAX_SCALE - MAP_NBRS.MIN_SCALE) + MAP_NBRS.MIN_SCALE;
+		MAP_NBRS.SCALE = ((document.body.clientWidth - BODY_NBRS.MIN_WIDTH) / (BODY_NBRS.MAX_WIDTH - BODY_NBRS.MIN_WIDTH)) * (MAP_NBRS.MAX_SCALE - MAP_NBRS.MIN_SCALE) + MAP_NBRS.MIN_SCALE;
 
 		CLOCK_NBRS.WIDTH = MAP_NBRS.WIDTH;
 		//CLOCK_NBRS.HEIGHT = MAP_NBRS.HEIGHT;  We'll allow the clock to take up a constant height.
@@ -75,8 +86,6 @@
 		_utcTimeElem = document.getElementById("utcTime");
 
 		_geocoder = new google.maps.Geocoder();
-
-		setupPrototypes();
 
 		createTimeZoneMap();
 
@@ -255,34 +264,11 @@
 	}
 
 
+
+
 	/**********************
 	 * Private methods
 	 **********************/
-
-	function setupPrototypes() {
-		Element.prototype.hasClassName = function(inpNm) {
-		    return new RegExp("(?:^|\\s+)" + inpNm + "(?:\\s+|$)").test(this.className);
-		};
-
-		Element.prototype.addClassName = function(inpNm) {
-		    if (!this.hasClassName(inpNm)) {
-		        this.className = this.className ? [this.className, inpNm].join(" ") : inpNm;
-		    }
-		};
-
-		Element.prototype.removeClassName = function(inpNm) {
-		    if (this.hasClassName(inpNm)) {
-		        var c = this.className;
-		        this.className = c.replace(new RegExp("(?:^|\\s+)" + inpNm + "(?:\\s+|$)", "g"), "");
-		        /* (?:^|\s) = Match the start of the string or any single whitespace character
-				 * load = The class name to remove
-				 * (?!\S) = Negative look-ahead to verify the above is the whole class name. It ensures there is no non-space character following (i.e., it must be the end of string or a space)
-				 */
-		    }
-		};
-	}
-
-
 
 	/*
 	 * Updates the times for our current set of localities and then redraws their rings.
@@ -454,7 +440,7 @@
 		// Create a tooltip
 		var tooltip = document.createElement("div");
 		tooltip.id = "tooltip";
-		document.getElementsByTagName("body")[0].appendChild(tooltip);
+		document.body.appendChild(tooltip);
 
 		// Load our topojson data
 		d3.json("data/tz_world.topojson", function(error, tzJson) {
