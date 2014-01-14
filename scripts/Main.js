@@ -32,12 +32,13 @@
 					LIMIT: "Try again later. Google's request limit reached.", DENIED: "Google denied this request", INVALID: "What did you do?! Invalid request.", 
 					SERVER: "Server error. Try again."};
 	var INPUT_COLORS = {OK: "#FFFFFF", PROBLEM: "#FF7878"};
+	var GOOGLE_TIME_ZONE_URI_TXT = "https://maps.googleapis.com/maps/api/timezone/json?";
 
 
 	/**********************
 	 * Global variables
 	 **********************/
-	var _utcDateElem, _utcTimeElem, _locInputElem, _utcRadioElem, _yearElem, _monthElem, _dateElem, _hourElem, _minuteElem, _relTimeClock, _clockContentGroup, _clockHandGroup;
+	var _utcDateElem, _utcTimeElem, _locInputElem, _utcRadioElem, _dstBoxElem, _yearElem, _monthElem, _dateElem, _hourElem, _minuteElem, _relTimeClock, _clockContentGroup, _clockHandGroup;
 	var _yearNbr, _monthNbr, _dateNbr, _hourNbr, _minuteNbr, _userSetDateInd = false, _userSetTimeInd = false, _userMovingHandInd = false;
 	var _localities = [];
 	var _defaultLoc = {latitude: 41.85, longitude: -87.649999};  // Default to Chicago.
@@ -74,6 +75,24 @@
 	 */
 	Main.Init = function() {
 
+		// Initialize timezoneJS (https://github.com/mde/timezone-js).
+		// This path text handles whether the URI is local (for testing) or remote (for deployment).
+		var pathTxt = (window.location.pathname.indexOf(".html") > -1) ? window.location.pathname.substr(0, window.location.pathname.lastIndexOf("/")) : "";
+		timezoneJS.timezone.zoneFileBasePath = pathTxt + "/data/timeZones";
+
+	    timezoneJS.timezone.transport = function (inpOptions) {
+			var req = new XMLHttpRequest;
+			req.open('GET', inpOptions.url, false);  // We will send synchronous requests.
+			req.send(null);
+			
+			if (req.status === 200) {
+				return req.responseText;
+			}
+	    };
+
+	    timezoneJS.timezone.init({async: false});
+
+
 		// Size the map to the current browser window size, taking into account our minimum and maximum width settings.
 		MAP_NBRS.WIDTH = document.body.clientWidth;
 		MAP_NBRS.HEIGHT = MAP_NBRS.WIDTH/2;
@@ -86,6 +105,8 @@
 		_utcTimeElem = document.getElementById("utcTime");
 
 		_geocoder = new google.maps.Geocoder();
+
+		extendProtypes();
 
 		createTimeZoneMap();
 
@@ -129,6 +150,15 @@
 	Main.HandleTimeRadioChange = function() {
 		setDate(true);
 		setTime(true);
+		updateLocalityTimes();
+	}
+
+
+
+	/*
+	 * Handles the changing of the DST option.
+	 */
+	Main.HandleDSTChange = function() {
 		updateLocalityTimes();
 	}
 
@@ -269,6 +299,25 @@
 	/**********************
 	 * Private methods
 	 **********************/
+
+	/*
+	 * Extends the prototypes of standard Javascript objects.
+	 */
+	function extendProtypes() {
+		
+		timezoneJS.Date.prototype.getStandardTimezoneOffset = function() {
+			var jan = new timezoneJS.Date(this.getFullYear(), 0, 1, 0, 0, this.timezone);
+			var jul = new timezoneJS.Date(this.getFullYear(), 6, 1, 0, 0, this.timezone);
+			return Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
+		};
+
+
+		timezoneJS.Date.prototype.getDSTInd = function() {
+			return this.getTimezoneOffset() < this.getStandardTimezoneOffset();
+		};
+	}
+
+
 
 	/*
 	 * Updates the times for our current set of localities and then redraws their rings.
@@ -516,6 +565,7 @@
 	 */
 	function createRelativeTimeClock() {
 		_utcRadioElem = document.getElementById("utcRadio");
+		_dstBoxElem = document.getElementById("dstBox");
 		_yearElem = document.getElementById("year");
 		_monthElem = document.getElementById("month");
 		_dateElem = document.getElementById("day");
@@ -798,7 +848,24 @@
 							_locInputElem.placeholder = INPUT_TXT.ENABLED;
 						}
 
-			        	createLocalityRings();
+						var req = new XMLHttpRequest;
+						req.overrideMimeType("application/json");
+						var locationTxt = "location=" + locality.latitude + "," + locality.longitude;
+						var date = new Date(_yearNbr, _monthNbr, _dateNbr, _hourNbr, _minuteNbr, 0, 0);
+						var timestampTxt = "&timestamp=" + (date.getTime()/1000);
+						var sensorTxt = "&sensor=false";
+						req.open('GET', GOOGLE_TIME_ZONE_URI_TXT + locationTxt + timestampTxt + sensorTxt, true);
+						req.onload  = function() {
+							if (req.readyState === 4 && req.status === 200) {
+								var json = JSON.parse(req.responseText);
+						    	locality.timeZoneId = json.timeZoneId;
+							} else {
+								locality.timeZoneId = "";
+							}
+
+							createLocalityRings();
+						};
+						req.send(null);
 			        }
 
 			        break;
@@ -883,7 +950,7 @@
 				sunsetTxt = sunsetTxt.substr(0, sunsetTxt.indexOf(" "));
 			}
 
-			createLocalityRing(sunriseTxt, locality.noon, sunsetTxt, radiusNbr, locality.name, locality.latitude);
+			createLocalityRing(sunriseTxt, locality.noon, sunsetTxt, radiusNbr, locality.name, locality.latitude, locality.timeZoneId);
 		}
 
 
@@ -947,7 +1014,30 @@
 	/*
 	 * Creates a ring for a locality.
 	 */
-	function createLocalityRing(inpSunriseTimeTxt, inpNoonTimeTxt, inpSunsetTimeTxt, inpInnerRadiusLenNbr, inpLabelTxt, inpLocalityLatitudeDegNbr) {
+	function createLocalityRing(inpSunriseTimeTxt, inpNoonTimeTxt, inpSunsetTimeTxt, inpInnerRadiusLenNbr, inpLabelTxt, inpLocalityLatitudeDegNbr, inpTimeZoneIdTxt) {
+		var dstDeltaMinutesNbr = 0;
+
+		if (_dstBoxElem.checked) {
+			var date = new Date();
+
+			if (_utcRadioElem.checked) {
+				date.setUTCFullYear(_yearNbr);
+				date.setUTCMonth(_monthNbr - 1);
+				date.setUTCDate(_dateNbr);	
+			} else {
+				date.setFullYear(_yearNbr);
+				date.setMonth(_monthNbr - 1);
+				date.setDate(_dateNbr);			
+			}
+
+			var tzDate = new timezoneJS.Date(date, inpTimeZoneIdTxt);
+
+			if (tzDate.getDSTInd()) {
+				dstDeltaMinutesNbr = -Math.abs(tzDate.getStandardTimezoneOffset() - tzDate.getTimezoneOffset());
+				inpNoonTimeTxt = addTime(inpNoonTimeTxt, dstDeltaMinutesNbr);
+			}
+		}
+
 		var workAMRadianNbr = convertTimeToRadianNbr(CLOCK_NBRS.WORK_AM_HOURS.toString() + ":00");
 		var workPMRadianNbr = convertTimeToRadianNbr(CLOCK_NBRS.WORK_PM_HOURS.toString() + ":00");
 		var sleepAMRadianNbr = convertTimeToRadianNbr(CLOCK_NBRS.SLEEP_AM_HOURS.toString() + ":00");

@@ -13,6 +13,7 @@
 		<script type="text/javascript" src="scripts/libraries/d3.v3.min.js"></script>
 		<script type="text/javascript" src="scripts/libraries/topojson.v1.min.js"></script>
 		<script type="text/javascript" src="scripts/libraries/colorbrewer.js"></script>
+		<script type="text/javascript" src="scripts/libraries/date.js"></script>
 		<script type="text/javascript" src="scripts/Main.js"></script>
 		<script type="text/javascript" src="scripts/SolarCalculator.js"></script>
 
@@ -68,6 +69,14 @@
 							<div class="radioCntnr">
 								<input type="radio" name="clockType" value="Local" onchange="Main.HandleTimeRadioChange()"/>
 								Local
+							</div>
+						</div>
+					</div>
+					<div class="additionalRowInputsCntnr">
+						<div class="rightSideInputsCntnr">
+							<div class="radioCntnr" title="Shifts work/sleep hours according to a locality's DST rules">
+								<input id="dstBox" type="checkbox" onchange="Main.HandleDSTChange()"/>
+								Apply Daylight Saving
 							</div>
 						</div>
 					</div>

@@ -235,6 +235,15 @@ input:disabled {
 	margin: 0 0 10px 10px;
 }
 
+/* Center the input vertically with respect to its label. "Vertical-align: middle;" wasn't doing it. */
+input[type=radio],
+input[type=checkbox] {
+	vertical-align: bottom;
+	margin: 0 3px 0 3px;
+	position: relative;
+	top: -1px;
+}
+
 button {
 	margin: 0 25px 0 25px;
 	width: 80px;
