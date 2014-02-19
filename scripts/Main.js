@@ -851,7 +851,7 @@
 						var req = new XMLHttpRequest;
 						req.overrideMimeType("application/json");
 						var locationTxt = "location=" + locality.latitude + "," + locality.longitude;
-						var date = new Date(_yearNbr, _monthNbr, _dateNbr, _hourNbr, _minuteNbr, 0, 0);
+						var date = new Date(_yearNbr, _monthNbr - 1, _dateNbr, _hourNbr, _minuteNbr, 0, 0);
 						var timestampTxt = "&timestamp=" + (date.getTime()/1000);
 						var sensorTxt = "&sensor=false";
 						req.open('GET', GOOGLE_TIME_ZONE_URI_TXT + locationTxt + timestampTxt + sensorTxt, true);
@@ -909,7 +909,7 @@
 
 		if (_utcRadioElem.checked === false) {
 			// We're using local time as our reference, so we need to calculate solar times with reference to that.
-			var date = new Date(_yearNbr, _monthNbr, _dateNbr, 0, 0, 0);
+			var date = new Date(_yearNbr, _monthNbr - 1, _dateNbr, 0, 0, 0);
 			utcOffsetNbr = -date.getTimezoneOffset() / 60;  // Pass the UTC offset as a fraction of an hour, either positive or negative.
 		}
 
