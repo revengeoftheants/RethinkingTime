@@ -476,7 +476,7 @@
 		var zoomBehavior = d3.behavior.zoom()
 			.translate([0,0])
 			.scale(1)
-			.scaleExtent([1,5])
+			.scaleExtent([1, 5])
 			.on("zoom", function() {
 				svgGroup.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
 				svgGroup.select(".antarcticaBorder").style("stroke-width", STROKE_WIDTH_NBRS.ANTARCTICA/d3.event.scale + "px");
@@ -1337,5 +1337,5 @@
 		return rtnObj;
 	}
 
-
-} (window.Main = window.Main || {}) );
+// Self-execute the function. If the Window.Main namespace already exists, use it; otherwise set it to an object.
+}) (window.Main = window.Main === undefined ? {} : window.Main);
